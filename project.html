@@ -16,6 +16,10 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- OpenStreetMap fallback, used until a Google Maps API key is configured -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         body {
             font-family: 'Prompt', sans-serif;
@@ -364,7 +368,7 @@
                             <i data-lucide="map" class="w-4 h-4 text-blue-600"></i>
                             <span>แนวทางเส้นทางในจังหวัดภูเก็ต</span>
                         </h4>
-                        <p id="twoWheelerWarning" class="hidden mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-900">ข้อมูลเส้นทางรถจักรยานยนต์ยังเป็นรุ่นเบต้า และอาจมีเส้นทางที่ไม่เหมาะสมหรือไม่ปลอดภัย โปรดตรวจสอบเส้นทางก่อนเดินทาง</p>
+                        <p id="twoWheelerWarning" class="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-900">ข้อมูลเส้นทางรถจักรยานยนต์ยังเป็นรุ่นเบต้า และอาจมีเส้นทางที่ไม่เหมาะสมหรือไม่ปลอดภัย โปรดตรวจสอบเส้นทางก่อนเดินทาง</p>
                         <div id="stepsList" class="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                         </div>
                     </div>
@@ -698,6 +702,9 @@
                 }
             }
             initLeafletMap();
+            if (!GOOGLE_MAPS_API_KEY) {
+                showToast('แสดงแผนที่สำรองอยู่: เพิ่ม Google Maps API key หากต้องการใช้ Google Maps', 'info');
+            }
         };
         const updateStartMarker = (coords, label) => {
             if (mapProvider === 'leaflet') {
@@ -771,8 +778,8 @@
         };
 
         const calculateRoute = async () => {
-            if (!map || !Route || !GooglePolyline) {
-                showToast('Google Maps ยังไม่พร้อมใช้งาน กรุณาตรวจสอบ API key และการตั้งค่า', 'error');
+            if (!map) {
+                showToast('แผนที่ยังไม่พร้อมใช้งาน', 'error');
                 return;
             }
             const dest = UNIVERSITIES[selectedDestKey];
@@ -784,7 +791,10 @@
             lucide.createIcons();
 
             try {
-                if (!Route || !GooglePolyline) throw new Error('Google Maps Routes API ยังไม่พร้อมใช้งาน');
+                if (mapProvider !== 'google' || !Route || !GooglePolyline) {
+                    fallbackHaversineCalculation(startLat, startLng, destLat, destLng, dest);
+                    return;
+                }
                 const travelMode = selectedTravelMode === 'motorbike'
                     ? 'TWO_WHEELER'
                     : selectedTravelMode === 'bus' ? 'TRANSIT' : 'DRIVING';
@@ -851,7 +861,7 @@
             const durationMins = Math.round(distKm * 2.2);
             const costEst = Math.round(distKm * 2);
 
-                        if (routePolyline) {
+            if (routePolyline) {
                 if (mapProvider === 'google') routePolyline.setMap(null);
                 else map.removeLayer(routePolyline);
             }
@@ -873,7 +883,8 @@
                     color: dest.color, dashArray: '8, 8', weight: 5, opacity: 0.75
                 }).addTo(map);
                 map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
-            }renderRouteResults(distKm, durationMins, costEst, dest);
+            }
+            renderRouteResults(distKm, durationMins, costEst, dest);
             showToast('คำนวณด้วยระบบสำรองเรียบร้อย', 'success');
         };
 
