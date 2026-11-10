@@ -230,7 +230,7 @@
                 <!-- Target University Selector -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">1. เลือกมหาวิทยาลัยเป้าหมาย</label>
-                    <div class="grid grid-cols-2 gap-2.5">
+                    <div class="grid grid-cols-1 gap-2.5">
                         <button type="button" id="destPsuBtn" data-dest="psu" class="dest-card border-2 border-blue-600 bg-blue-50/50 p-3 rounded-2xl text-left transition-all hover:shadow-md relative overflow-hidden group">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
@@ -240,14 +240,6 @@
                             <i data-lucide="check-circle-2" class="w-4 h-4 text-blue-600 absolute top-2.5 right-2.5 dest-check"></i>
                         </button>
 
-                        <button type="button" id="destPkruBtn" data-dest="pkru" class="dest-card border-2 border-slate-200 bg-white p-3 rounded-2xl text-left transition-all hover:shadow-md relative overflow-hidden group">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="w-2.5 h-2.5 rounded-full bg-purple-600 shrink-0"></span>
-                                <span class="text-xs font-bold text-slate-800">มรภ. ภูเก็ต</span>
-                            </div>
-                            <p class="text-[11px] text-slate-600 line-clamp-1">เมืองภูเก็ต (PKRU)</p>
-                            <i data-lucide="check-circle-2" class="w-4 h-4 text-purple-600 absolute top-2.5 right-2.5 dest-check hidden"></i>
-                        </button>
                     </div>
                 </div>
 
@@ -369,6 +361,7 @@
                             <span>แนวทางเส้นทางในจังหวัดภูเก็ต</span>
                         </h4>
                         <p id="twoWheelerWarning" class="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-900">ข้อมูลเส้นทางรถจักรยานยนต์ยังเป็นรุ่นเบต้า และอาจมีเส้นทางที่ไม่เหมาะสมหรือไม่ปลอดภัย โปรดตรวจสอบเส้นทางก่อนเดินทาง</p>
+                        <p id="routeProviderWarning" class="hidden mb-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-[11px] leading-relaxed text-sky-900">เส้นทางสำรองใช้โปรไฟล์รถยนต์จาก OSRM และ OpenStreetMap จึงวาดตามถนนได้ แต่อาจไม่ตรงกับเส้นทางรถจักรยานยนต์หรือรถโดยสารโดยเฉพาะ</p>
                         <div id="stepsList" class="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                         </div>
                     </div>
@@ -395,10 +388,6 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
                     <span>มุมมอง ม.อ.ภูเก็ต</span>
                 </button>
-                <button id="focusPkruBtn" class="bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 text-xs font-semibold px-3 py-2 rounded-xl shadow-md border border-slate-200/80 flex items-center gap-1.5 transition-all">
-                    <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
-                    <span>มุมมอง มรภ.ภูเก็ต</span>
-                </button>
                 <button id="resetMapBoundsBtn" class="bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 text-xs font-semibold px-3 py-2 rounded-xl shadow-md border border-slate-200/80 flex items-center gap-1.5 transition-all">
                     <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-slate-600"></i>
                     <span>มุมมองภาพรวมภูเก็ต</span>
@@ -415,10 +404,6 @@
                 <div class="flex items-center gap-2">
                     <span class="w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow-sm"></span>
                     <span class="text-slate-600">ม.อ. ภูเก็ต [7.8938, 98.3530]</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full bg-purple-600 border-2 border-white shadow-sm"></span>
-                    <span class="text-slate-600">มรภ. ภูเก็ต [7.9080, 98.3875]</span>
                 </div>
             </div>
         </main>
@@ -497,13 +482,6 @@
                 district: 'อำเภอกะทู้',
                 coords: [7.8938, 98.3530],
                 color: '#2563eb'
-            },
-            pkru: {
-                name: 'มหาวิทยาลัยราชภัฏภูเก็ต (PKRU)',
-                shortName: 'มรภ. ภูเก็ต',
-                district: 'อำเภอเมืองภูเก็ต',
-                coords: [7.9080, 98.3875],
-                color: '#9333ea'
             }
         };
 
@@ -528,15 +506,15 @@
         let mapProvider = 'leaflet';
         let startMarker = null;
         let psuMarker = null;
-        let pkruMarker = null;
         let routePolyline = null;
         let startInfoWindow = null;
         let psuInfoWindow = null;
-        let pkruInfoWindow = null;
         let GooglePolyline = null;
         let GoogleLatLngBounds = null;
         let AdvancedMarkerElement = null;
         let Route = null;
+        let currentRouteSource = 'google';
+        let lastOSRMRequestAt = 0;
 
         let selectedDestKey = 'psu';
         let selectedTravelMode = 'motorbike';
@@ -626,13 +604,10 @@
             });
 
             psuInfoWindow = new InfoWindow({ content: `<b>${escapeHTML(UNIVERSITIES.psu.shortName)}</b><br/>กะทู้ (PSU Phuket)` });
-            pkruInfoWindow = new InfoWindow({ content: `<b>${escapeHTML(UNIVERSITIES.pkru.shortName)}</b><br/>อำเภอเมือง (PKRU)` });
             startInfoWindow = new InfoWindow();
 
             psuMarker = createAdvancedMarker(UNIVERSITIES.psu.coords, '#2563eb', 'university', UNIVERSITIES.psu.shortName);
-            pkruMarker = createAdvancedMarker(UNIVERSITIES.pkru.coords, '#9333ea', 'university', UNIVERSITIES.pkru.shortName);
             psuMarker.addEventListener('gmp-click', () => psuInfoWindow.open({ map, anchor: psuMarker }));
-            pkruMarker.addEventListener('gmp-click', () => pkruInfoWindow.open({ map, anchor: pkruMarker }));
 
             updateStartMarker(currentStartCoords, currentStartName);
 
@@ -669,8 +644,6 @@
             }).addTo(map);
             psuMarker = L.marker(UNIVERSITIES.psu.coords, { icon: createLeafletIcon('#2563eb', 'university') })
                 .addTo(map).bindPopup('<b>' + escapeHTML(UNIVERSITIES.psu.shortName) + '</b><br/>กะทู้ (PSU Phuket)');
-            pkruMarker = L.marker(UNIVERSITIES.pkru.coords, { icon: createLeafletIcon('#9333ea', 'university') })
-                .addTo(map).bindPopup('<b>' + escapeHTML(UNIVERSITIES.pkru.shortName) + '</b><br/>อำเภอเมือง (PKRU)');
             updateStartMarker(currentStartCoords, currentStartName);
             map.on('click', (event) => {
                 const lat = event.latlng.lat;
@@ -696,7 +669,6 @@
                     map = null;
                     startMarker = null;
                     psuMarker = null;
-                    pkruMarker = null;
                     document.getElementById('map').innerHTML = '';
                     showToast('Google Maps ยังตั้งค่าไม่ครบ เปิดแผนที่สำรองให้แล้ว', 'error');
                 }
@@ -746,10 +718,17 @@
             }
         };
 
+        const updateRouteWarnings = () => {
+            document.getElementById('twoWheelerWarning').classList.toggle(
+                'hidden', selectedTravelMode !== 'motorbike' || currentRouteSource !== 'google'
+            );
+            document.getElementById('routeProviderWarning').classList.toggle('hidden', currentRouteSource !== 'osrm');
+        };
+
         const renderRouteResults = (distanceKm, durationMins, costEst, dest, steps = []) => {
             document.getElementById('emptyResultState').classList.add('hidden');
             document.getElementById('calcResultsContent').classList.remove('hidden');
-            document.getElementById('twoWheelerWarning').classList.toggle('hidden', selectedTravelMode !== 'motorbike');
+            updateRouteWarnings();
             document.getElementById('resDistance').textContent = `${distanceKm} กม.`;
             document.getElementById('resTime').textContent = `${durationMins} นาที`;
             document.getElementById('resCost').textContent = `${costEst} ฿`;
@@ -792,7 +771,7 @@
 
             try {
                 if (mapProvider !== 'google' || !Route || !GooglePolyline) {
-                    fallbackHaversineCalculation(startLat, startLng, destLat, destLng, dest);
+                    await calculateOSRMRoute(startLat, startLng, destLat, destLng, dest);
                     return;
                 }
                 const travelMode = selectedTravelMode === 'motorbike'
@@ -837,11 +816,22 @@
                 }
 
                 const steps = (route.legs || []).flatMap((leg) => leg.steps || []);
+                currentRouteSource = 'google';
                 renderRouteResults(distanceKm, durationMins, costEst, dest, steps);
                 showToast('คำนวณเส้นทางเรียบร้อยแล้ว', 'success');
             } catch (err) {
                 console.warn('Google Maps route calculation fallback triggered:', err);
-                fallbackHaversineCalculation(startLat, startLng, destLat, destLng, dest);
+                if (mapProvider === 'google' && Route && GooglePolyline) {
+                    try {
+                        await calculateOSRMRoute(startLat, startLng, destLat, destLng, dest);
+                    } catch (fallbackError) {
+                        console.error('Road route fallback failed:', fallbackError);
+                        showToast('ดึงเส้นทางตามถนนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
+                    }
+                } else {
+                    console.error('Road route request failed:', err);
+                    showToast('ดึงเส้นทางตามถนนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
+                }
             } finally {
                 calcBtn.disabled = false;
                 calcBtn.innerHTML = `<i data-lucide="navigation" class="w-4 h-4"></i><span>คำนวณเส้นทางที่ดีที่สุด</span>`;
@@ -849,43 +839,71 @@
             }
         };
 
-        const fallbackHaversineCalculation = (lat1, lon1, lat2, lon2, dest) => {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distKm = (R * c * 1.35).toFixed(1);
-            const durationMins = Math.round(distKm * 2.2);
-            const costEst = Math.round(distKm * 2);
+        const calculateOSRMRoute = async (lat1, lon1, lat2, lon2, dest) => {
+            const waitMs = Math.max(0, 1000 - (Date.now() - lastOSRMRequestAt));
+            if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+            lastOSRMRequestAt = Date.now();
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+            const coordinatePath = `${lon1},${lat1};${lon2},${lat2}`;
+            const requestUrl = `https://router.project-osrm.org/route/v1/driving/${coordinatePath}?overview=full&geometries=geojson&steps=true`;
+            let payload;
+            try {
+                const response = await fetch(requestUrl, { signal: controller.signal });
+                if (!response.ok) throw new Error(`OSRM request failed with HTTP ${response.status}`);
+                payload = await response.json();
+            } finally {
+                clearTimeout(timeoutId);
+            }
+
+            const route = payload.routes?.[0];
+            const coordinates = route?.geometry?.coordinates;
+            if (payload.code !== 'Ok' || !Array.isArray(coordinates) || coordinates.length < 2) {
+                throw new Error(`OSRM did not return a road route: ${payload.code || 'unknown error'}`);
+            }
 
             if (routePolyline) {
                 if (mapProvider === 'google') routePolyline.setMap(null);
                 else map.removeLayer(routePolyline);
             }
+
             if (mapProvider === 'google' && GooglePolyline) {
+                const googlePath = coordinates.map(([lng, lat]) => ({ lat, lng }));
                 routePolyline = new GooglePolyline({
                     map,
-                    path: [toLatLng([lat1, lon1]), toLatLng([lat2, lon2])],
+                    path: googlePath,
                     strokeColor: dest.color,
-                    strokeOpacity: 0.75,
-                    strokeWeight: 5,
-                    icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 }, offset: '0', repeat: '16px' }]
+                    strokeOpacity: 0.85,
+                    strokeWeight: 6,
+                    geodesic: true
                 });
                 const bounds = new GoogleLatLngBounds();
-                bounds.extend(toLatLng([lat1, lon1]));
-                bounds.extend(toLatLng([lat2, lon2]));
+                googlePath.forEach((point) => bounds.extend(point));
                 map.fitBounds(bounds, 50);
-            } else if (mapProvider === 'leaflet') {
-                routePolyline = L.polyline([[lat1, lon1], [lat2, lon2]], {
-                    color: dest.color, dashArray: '8, 8', weight: 5, opacity: 0.75
+            } else {
+                const leafletPath = coordinates.map(([lng, lat]) => [lat, lng]);
+                routePolyline = L.polyline(leafletPath, {
+                    color: dest.color, weight: 6, opacity: 0.85, lineCap: 'round'
                 }).addTo(map);
                 map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
             }
-            renderRouteResults(distKm, durationMins, costEst, dest);
-            showToast('คำนวณด้วยระบบสำรองเรียบร้อย', 'success');
+
+            const distanceKmValue = route.distance / 1000;
+            const distanceKm = distanceKmValue.toFixed(1);
+            const durationMins = Math.round(route.duration / 60);
+            let costEst = 0;
+            if (selectedTravelMode === 'motorbike') costEst = Math.round(distanceKmValue * 1.5);
+            else if (selectedTravelMode === 'car') costEst = Math.round(distanceKmValue * 3.5);
+            else if (selectedTravelMode === 'bus') costEst = distanceKmValue > 10 ? 40 : 30;
+
+            const steps = (route.legs || []).flatMap((leg) => leg.steps || []).map((step) => ({
+                instructions: step.name ? `ใช้ถนน ${step.name}` : 'เดินทางต่อไปตามเส้นทาง',
+                distanceMeters: step.distance
+            }));
+            currentRouteSource = 'osrm';
+            renderRouteResults(distanceKm, durationMins, costEst, dest, steps);
+            showToast('แสดงเส้นทางตามถนนด้วยโปรไฟล์รถยนต์สำรอง', 'success');
         };
 
         /* Hybrid Smart Auth Engine (Firebase + Local Storage Guarantee) */
@@ -1149,17 +1167,7 @@
         document.getElementById('destPsuBtn').addEventListener('click', () => {
             selectedDestKey = 'psu';
             document.getElementById('destPsuBtn').className = 'dest-card border-2 border-blue-600 bg-blue-50/50 p-3 rounded-2xl text-left transition-all relative';
-            document.getElementById('destPkruBtn').className = 'dest-card border-2 border-slate-200 bg-white p-3 rounded-2xl text-left transition-all relative';
             document.querySelector('#destPsuBtn .dest-check').classList.remove('hidden');
-            document.querySelector('#destPkruBtn .dest-check').classList.add('hidden');
-        });
-
-        document.getElementById('destPkruBtn').addEventListener('click', () => {
-            selectedDestKey = 'pkru';
-            document.getElementById('destPkruBtn').className = 'dest-card border-2 border-purple-600 bg-purple-50/50 p-3 rounded-2xl text-left transition-all relative';
-            document.getElementById('destPsuBtn').className = 'dest-card border-2 border-slate-200 bg-white p-3 rounded-2xl text-left transition-all relative';
-            document.querySelector('#destPkruBtn .dest-check').classList.remove('hidden');
-            document.querySelector('#destPsuBtn .dest-check').classList.add('hidden');
         });
 
         document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -1169,7 +1177,7 @@
                 });
                 btn.className = 'mode-btn border border-blue-500 bg-blue-50 text-blue-700 py-2.5 px-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all shadow-sm';
                 selectedTravelMode = btn.dataset.mode;
-                document.getElementById('twoWheelerWarning').classList.toggle('hidden', selectedTravelMode !== 'motorbike');
+                updateRouteWarnings();
             });
         });
 
@@ -1222,20 +1230,12 @@
                 map.invalidateSize();
             }
         };
-        const openUniversityPopup = (key) => {
-            if (mapProvider === 'google') {
-                const marker = key === 'psu' ? psuMarker : pkruMarker;
-                const info = key === 'psu' ? psuInfoWindow : pkruInfoWindow;
-                info.open({ map, anchor: marker });
-            } else {
-                (key === 'psu' ? psuMarker : pkruMarker).openPopup();
-            }
+        const openPsuPopup = () => {
+            if (mapProvider === 'google') psuInfoWindow.open({ map, anchor: psuMarker });
+            else psuMarker.openPopup();
         };
         document.getElementById('focusPsuBtn').addEventListener('click', () => {
-            if (map) { centerMap(UNIVERSITIES.psu.coords, 15); openUniversityPopup('psu'); }
-        });
-        document.getElementById('focusPkruBtn').addEventListener('click', () => {
-            if (map) { centerMap(UNIVERSITIES.pkru.coords, 15); openUniversityPopup('pkru'); }
+            if (map) { centerMap(UNIVERSITIES.psu.coords, 15); openPsuPopup(); }
         });
         document.getElementById('resetMapBoundsBtn').addEventListener('click', () => {
             if (map) centerMap([7.8930, 98.3600], 12);
@@ -1329,4 +1329,3 @@
     </script>
 </body>
 </html>
-
