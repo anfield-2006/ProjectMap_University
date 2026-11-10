@@ -62,7 +62,12 @@
   function save() { localStorage.setItem(KEY, JSON.stringify(S)); scheduler.rebuild(); }
 
   // ================================================================ api
+  let hasServer = null; // null = unknown, false = static hosting (GitHub Pages) → call public APIs directly
   async function api(path, opts = {}, timeout = 8000) {
+    if (path.startsWith('/api/')) {
+      if (hasServer === false) throw new Error('no local server');
+      path = path.slice(1); // relative, so the app also works under a sub-path
+    }
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), timeout);
     try {
@@ -73,8 +78,8 @@
   }
   let nlpServer = null; // null = unknown, true/false
   async function checkHealth() {
-    try { const h = await api('/api/health', {}, 4000); nlpServer = !!(h.nlp && h.nlp.available); googleServer = !!h.google; return h; }
-    catch (_) { nlpServer = false; return null; }
+    try { const h = await api('/api/health', {}, 4000); nlpServer = !!(h.nlp && h.nlp.available); googleServer = !!h.google; hasServer = true; return h; }
+    catch (_) { nlpServer = false; hasServer = false; return null; }
   }
   /** PyThaiNLP tokens (server) → JS rule engine; fallback Intl.Segmenter. */
   async function analyzeText(text) {
@@ -92,12 +97,17 @@
       const r = await api(`/api/geocode?q=${encodeURIComponent(q)}${nearQ}`);
       return r.results;
     } catch (_) {
-      const r = await api(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=th&accept-language=th&q=${encodeURIComponent(q)}`);
+      const base = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=th&accept-language=th&q=${encodeURIComponent(q)}`;
+      let r = [];
+      if (near) r = await api(`${base}&bounded=1&viewbox=${near.lng - 1.5},${near.lat + 1.5},${near.lng + 1.5},${near.lat - 1.5}`).catch(() => []);
+      if (!r.length) r = await api(base);
       return r.map((x) => ({ label: x.display_name, name: x.name || x.display_name.split(',')[0], lat: +x.lat, lng: +x.lon }));
     }
   }
   async function reverseGeocode(p) {
-    try { const r = await api(`/api/reverse?lat=${p.lat}&lng=${p.lng}`); return r.name || r.label.split(',').slice(0, 2).join(','); }
+    const short = (r) => r.name || String(r.label || r.display_name || '').split(',').slice(0, 2).join(',');
+    try { return short(await api(`/api/reverse?lat=${p.lat}&lng=${p.lng}`)); } catch (_) { /* fall through */ }
+    try { return short(await api(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=th&lat=${p.lat}&lon=${p.lng}`)) || `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`; }
     catch (_) { return `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`; }
   }
   let googleServer = false;
@@ -108,6 +118,11 @@
       const r = await api(`/api/route?from=${a.lat},${a.lng}&to=${b.lat},${b.lng}&mode=${encodeURIComponent(mode)}${dep}`, {}, 15000);
       if (r.source === 'Google') return { km: r.km, baseMin: r.baseMin, trafficMin: r.trafficMin, line: r.line, source: 'Google', departure: r.departure, mode: r.mode };
       return { km: r.km, baseMin: r.baseMin, line: r.line, source: 'OSRM' };
+    } catch (_) { /* no local server → public OSRM directly */ }
+    try {
+      const r = await api(`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=simplified&geometries=geojson`, {}, 12000);
+      const rt = r.routes[0];
+      return { km: rt.distance / 1000, baseMin: rt.duration / 60, line: rt.geometry.coordinates.map((c) => [c[1], c[0]]), source: 'OSRM' };
     } catch (_) {
       return { ...E.estimateRoute(a, b), line: [[a.lat, a.lng], [b.lat, b.lng]] };
     }
@@ -222,7 +237,7 @@
 
   function notify(title, body) {
     try {
-      if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, icon: '/favicon.svg' });
+      if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, icon: 'favicon.svg' });
     } catch (_) { /* ignore */ }
   }
   function fire(r) {

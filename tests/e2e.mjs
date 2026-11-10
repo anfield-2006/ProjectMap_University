@@ -15,7 +15,7 @@ const ctx = await browser.newContext({
 });
 const page = await ctx.newPage();
 page.on('pageerror', (e) => errors.push(e.message));
-page.on('console', (m) => { if (m.type() === 'error' && !/tile|openstreetmap|favicon/i.test(m.text())) errors.push(m.text()); });
+page.on('console', (m) => { if (m.type() === 'error' && !/tile|openstreetmap|favicon/i.test(m.text()) && !(m.location().url || '').includes('api/health')) errors.push(m.text()); });
 
 await page.goto(BASE);
 // ---- onboarding: 3 questions
